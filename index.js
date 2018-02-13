@@ -3,28 +3,55 @@ const server = require("http").Server();
 
 var io = require("socket.io")(server);
 
-var allusers = [];
+// var allusersRoom1 = [];
+// var allusersRoom2 = [];
+
+var allRooms = {};
 
 
 io.on("connection", function(socket){
    console.log("someone is connected");
-    allusers.push(socket.id);
+    // allusers.push(socket.id);
+    // commnad out for allusers
+
+    // only when they join the room
+    socket.on("joinroom", function(data){
+        socket.emit("yourid", socket.id);
+        socket.join(data);
+        //io.emit("createimage", allusers);
+        socket.myRoom = data;
+
+        // dynamically creates objects inside an array
+        if(!allRooms[data]){
+            allRooms[data] = [];
+        }
+
+        allRooms[data].push(socket.id);
+        io.to(data).emit("createimage", allRooms[data]);
+
+        // it is code only for room1 and room2
+        // if (data =="room1") {
+        //     allusersRoom1.push(socket.id);
+        //     io.to(data).emit("createimage", allusersRoom1);
+        // }else if(data =="room2"){
+        //     allusersRoom2.push(socket.id);
+        //     io.to(data).emit("createimage", allusersRoom2);
+        // }
+        
+        console.log(data);
+
+    });
     
-    socket.emit("yourid", socket.id);
-    
-    
-    io.emit("createimage", allusers);
-    
-    console.log(allusers);
+    // console.log(allusers);
 
     socket.on("mymove", function(data){
-        socket.broadcast.emit("usermove", data);
+        socket.to(this.myRoom).emit("usermove", data);
     });
     
     socket.on("disconnect", function(){
-        var index = allusers.indexOf(socket.id);
-        allusers.splice(index, 1);
-        io.emit("createimage", allusers);
+        var index = allRooms[this.myRoom].indexOf(socket.id);
+        allRooms[this.myRoom].splice(index, 1);
+        io.to(this.myRoom).emit("createimage", allRooms[this.myRoom]);
     });
     
     
